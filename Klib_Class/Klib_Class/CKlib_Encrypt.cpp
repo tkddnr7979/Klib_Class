@@ -1,7 +1,10 @@
+#include"pch.h"
 #include "CKlib.h"
 
 
 bool CKlib::KLIB_Encrypt(KL_OBJECT* data, KL_OBJECT& oEncryptedData) {
+
+	std::lock_guard<std::mutex> lock(mtx);
 
 	bool rtn = false;
 
@@ -242,6 +245,97 @@ bool CKlib::KLIB_EncryptKeyAndSaveFile(std::vector<KL_BYTE>& key, KLE_CONTEXT_TY
 
 	//사용 컨텍스트, 오브젝트 초기화
 	K_ClearSensitive((KL_OBJECT_PTR)&oKeyData, 2);
+	K_ClearSensitive((KL_OBJECT_PTR)&oEncryptedData, 2);
+	K_ClearSensitive((KL_OBJECT_PTR)&oDecryptedData, 2);
+
+	if (oEncryptedData[1].pValue != NULL) {
+		free(oEncryptedData[1].pValue);
+	}
+	if (oDecryptedData[1].pValue != NULL) {
+		free(oDecryptedData[1].pValue);
+	}
+
+
+	return rtn;
+}
+
+bool CKlib::KLIB_FileEncryptAndSave(CStringA filePath, KLE_CONTEXT_TYPE op_mode, KL_ULONG keylen, CStringA data)
+{
+	bool rtn = false;
+
+
+	//--[Init]-------------------------------------------------------------------------//
+
+	//For Data(Plaintext or Ciphertext)
+	KL_OBJECT oData = {
+		{KLO_DATA, NULL, 0, FALSE, FALSE},
+		{KLA_VALUE, data.GetBuffer(), data.GetLength(), TRUE, FALSE},
+	};
+
+	//For Encryption Output
+	KL_BYTE_PTR EncDataBuf = NULL;
+	KL_OBJECT oEncryptedData = {
+		{KLO_DATA,	NULL, 0, FALSE, FALSE},
+		{KLA_VALUE, EncDataBuf, 0, FALSE, FALSE}
+	};
+
+	//For Decryption Output
+	KL_BYTE_PTR DecDataBuf = NULL;
+	KL_OBJECT oDecryptedData = {
+		{KLO_DATA,	NULL, 0, FALSE, FALSE},
+		{KLA_VALUE, DecDataBuf, 0, FALSE, FALSE}
+	};
+
+
+	try {
+
+		//--[Encrypt]-------------------------------------------------------------------------//
+
+		if (!KLIB_Encrypt(&oData, oEncryptedData)) {
+			throw CStringA("Encrypt failed");
+		}
+
+
+		//--[Encrypt 체크]-------------------------------------------------------------------------//
+
+		if (!KLIB_Decrypt(&oEncryptedData, oDecryptedData)) {
+			throw CStringA("Encrypt Check - Encrpyt failed");
+		}
+
+		// 해쉬값 비교
+		CStringA hashOrigin, hashCopy;
+		KLIB_MakeHash(oData, GetHashType(), hashOrigin);
+		KLIB_MakeHash(oDecryptedData, GetHashType(), hashCopy);
+		bool bHashCompare = hashOrigin.CompareNoCase(hashCopy) == 0
+							&& hashOrigin.GetLength() > 0
+							&& hashCopy.GetLength() > 0;
+		if (!bHashCompare) {
+			throw CStringA("Encrypt Check - Compare failed");
+		}
+
+
+		//--[save file]-------------------------------------------------------------------------//
+
+		if (!KLIB_FileWrite(filePath, oEncryptedData)) {
+			throw CStringA("File save fail");
+		}
+
+
+		rtn = true;
+	}
+	catch (CStringA ex) {
+		OutputDebugStringA(CStringA("[klib] KLIB_FileEncryptAndSave - Fail : ") + ex + "\n\t - file : " + filePath);
+		rtn = false;
+	}
+	catch (std::exception ex) {
+		OutputDebugStringA(CStringA("[klib] KLIB_FileEncryptAndSave - Exception : ") + ex.what() + "\n\t - file : " + filePath);
+		rtn = false;
+	}
+
+	//--[Release]-------------------------------------------------------------------------//
+
+	//사용 컨텍스트, 오브젝트 초기화
+	K_ClearSensitive((KL_OBJECT_PTR)&oData, 2);
 	K_ClearSensitive((KL_OBJECT_PTR)&oEncryptedData, 2);
 	K_ClearSensitive((KL_OBJECT_PTR)&oDecryptedData, 2);
 

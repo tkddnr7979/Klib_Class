@@ -1,3 +1,4 @@
+#include"pch.h"
 #include "CKlib.h"
 
 #define KLIB_READ_FILE_BUFFER_SIZE 1 << 20
@@ -15,8 +16,8 @@ bool CKlib::KLIB_MakeHashFromFile(CStringA filePath, KLE_CONTEXT_TYPE dgst_alg, 
 
 	std::vector<KL_BYTE> readBuffer;
 	if (KLIB_FileRead(filePath, readBuffer) == false) {
-		OutputDebugStringA("[klib] KLIB_Encrypt - Fail : File not found");
-		return false;
+		//OutputDebugStringA("[klib] KLIB_Encrypt - Fail : File not found");
+		return rtn;
 	}
 	KL_ULONG readBufferSize = readBuffer.size();
 

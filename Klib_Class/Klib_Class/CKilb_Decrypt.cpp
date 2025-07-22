@@ -1,7 +1,10 @@
+#include"pch.h"
 #include "CKlib.h"
 
 
 bool CKlib::KLIB_Decrypt(KL_OBJECT* data, KL_OBJECT& oDecryptedData) {
+
+	std::lock_guard<std::mutex> lock(mtx);
 
 	bool rtn = false;
 
@@ -133,11 +136,11 @@ bool CKlib::KLIB_FileDecrypt(CStringA filePath, KLE_CONTEXT_TYPE op_mode, KL_ULO
 
 	}
 	catch (CStringA ex) {
-		OutputDebugStringA(CStringA("[klib] KLIB_FileDecrypt - Fail : ") + ex);
+		OutputDebugStringA(CStringA("[klib] KLIB_FileDecrypt - Fail : ") + ex + "\n\t - file : " + filePath);
 		rtn = false;
 	}
 	catch (std::exception ex) {
-		OutputDebugStringA(CStringA("[klib] KLIB_FileDecrypt - Exception : ") + ex.what());
+		OutputDebugStringA(CStringA("[klib] KLIB_FileDecrypt - Exception : ") + ex.what() + "\n\t - file : " + filePath);
 		rtn = false;
 	}
 
@@ -168,7 +171,7 @@ bool CKlib::KLIB_FileDecryptAndRead(CStringA filePath, KLE_CONTEXT_TYPE op_mode,
 
 	std::vector<KL_BYTE> readFileBuffer;
 	if (KLIB_FileRead(filePath, readFileBuffer) == false) {
-		OutputDebugStringA("[klib] KLIB_FileDecrypt - Fail : File not found");
+		OutputDebugStringA("[klib] KLIB_FileDecrypt - Fail : File not found \n\t - file : " + filePath);
 		return false;
 	}
 	KL_ULONG readFileBufferSize = readFileBuffer.size();
@@ -239,11 +242,11 @@ bool CKlib::KLIB_FileDecryptAndRead(CStringA filePath, KLE_CONTEXT_TYPE op_mode,
 		rtn = true;
 	}
 	catch (CStringA ex) {
-		OutputDebugStringA(CStringA("[klib] KLIB_FileDecryptAndRead - Fail : ") + ex);
+		OutputDebugStringA(CStringA("[klib] KLIB_FileDecryptAndRead - Fail : ") + ex + "\n\t - file : " + filePath);
 		rtn = false;
 	}
 	catch (std::exception ex) {
-		OutputDebugStringA(CStringA("[klib] KLIB_FileDecryptAndRead - Exception : ") + ex.what());
+		OutputDebugStringA(CStringA("[klib] KLIB_FileDecryptAndRead - Exception : ") + ex.what() + "\n\t - file : " + filePath);
 		rtn = false;
 	}
 
